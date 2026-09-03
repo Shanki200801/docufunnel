@@ -1,0 +1,50 @@
+# Gmail -> Drive -> markdown -> Gemini -> Sheets.
+# The direct replacement for the Apps Script original, plus extraction.
+name: invoices
+
+limit: 50
+on_error: skip
+
+source:
+  type: gmail
+  # Any Gmail search operator works. `-label:<processed_label>` is appended
+  # automatically, so processed mail is excluded server-side.
+  query: "has:attachment filename:pdf (invoice OR receipt OR bill)"
+  processed_label: docpipe/invoices
+  filename_glob: "*.pdf"
+  max_threads: 100
+  min_bytes: 2048          # drops signature images and tracking pixels
+
+store:
+  type: gdrive
+  path: "Invoices/{{yyyymm}}"
+  # parent_id: <folder id>   # omit for My Drive root
+
+normalize:
+  type: markitdown
+  fallback:
+    # markitdown has no OCR: a scanned invoice converts to near-empty text
+    # without raising, so the fallback triggers on length.
+    type: docling
+    min_text_len: 200
+
+extract:
+  type: llm
+  model: gemini-2.5-flash
+  schema:
+    invoice_no: string
+    invoice_date: date
+    due_date: date
+    vendor_name: string
+    vendor_tax_id: string
+    currency: currency
+    subtotal: number
+    tax: number
+    total: number
+
+sink:
+  type: gsheet
+  spreadsheet_id: ${INVOICE_SHEET_ID}
+  tab: "{{year}}"
+  # Business-level dedupe. Use _uid instead for exact-file dedupe.
+  dedupe_key: invoice_no

@@ -1,0 +1,39 @@
+# One document -> many rows, and raw PDF straight to the model.
+#
+# Line-item tables are exactly where a markdown conversion hurts: column
+# alignment carries meaning and markitdown flattens it. `passthrough` skips
+# normalization so Gemini sees the actual page. Costs ~258 tokens per page.
+name: line-items
+
+source:
+  type: local
+  path: ./samples
+  glob: "**/*.pdf"
+  state_file: .state/line-items.json
+
+normalize:
+  type: passthrough
+
+extract:
+  type: llm
+  model: gemini-2.5-flash
+  records_path: line_items          # explode this array into one row each
+  carry_fields: [invoice_no, invoice_date, vendor_name, currency]
+  schema:
+    invoice_no: string
+    invoice_date: date
+    vendor_name: string
+    currency: currency
+    line_items:
+      type: array
+      items:
+        description: string
+        sku: string
+        qty: number
+        unit_price: number
+        amount: number
+
+sink:
+  type: csv
+  path: out/line-items.csv
+  dedupe_key: _uid

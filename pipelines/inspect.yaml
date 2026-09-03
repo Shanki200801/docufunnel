@@ -1,0 +1,22 @@
+# No credentials, no model, no cost.
+#
+# Run this first against a folder of real documents to see what the normalizer
+# actually produces, before committing to a schema. The `text` extractor writes
+# the markdown itself to a CSV so you can read it.
+name: inspect
+
+source:
+  type: local
+  path: ./samples
+  glob: "**/*"
+
+normalize:
+  type: markitdown
+
+extract:
+  type: text
+  max_chars: 8000
+
+sink:
+  type: csv
+  path: out/inspect.csv

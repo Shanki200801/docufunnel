@@ -1,0 +1,46 @@
+[project]
+name = "docpipe"
+version = "0.1.0"
+description = "Config-driven document ETL: source -> store -> normalize -> extract -> sink"
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "pyyaml>=6.0",
+    "pydantic>=2.7",
+]
+
+[project.optional-dependencies]
+# Gmail source, Drive store, Sheets sink.
+google = [
+    "google-api-python-client>=2.130",
+    "google-auth>=2.30",
+    "google-auth-oauthlib>=1.2",
+]
+# Default normalizer. [all] pulls markitdown's own format extras.
+markitdown = ["markitdown[pdf,docx,xlsx,pptx]>=0.1.0"]
+# Fallback normalizer: layout models, table structure, OCR. Heavy.
+docling = ["docling>=2.15"]
+# LLM extractor.
+llm = ["google-genai>=1.0"]
+dev = ["pytest>=8", "python-dotenv>=1.0", "ruff>=0.6"]
+
+[project.scripts]
+docpipe = "docpipe.cli:main"
+
+# Third-party adapter packages register themselves here; docpipe.core.load_plugins
+# imports every entry point in this group at startup.
+[project.entry-points."docpipe.adapters"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/docpipe"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+src = ["src", "tests"]

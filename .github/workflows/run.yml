@@ -1,0 +1,67 @@
+name: docpipe
+
+on:
+  schedule:
+    # Every 6 hours. GitHub queues cron jobs under load, so treat the time as
+    # approximate — pipelines are idempotent, which is what makes that fine.
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      pipeline:
+        description: Pipeline config to run
+        type: string
+        default: pipelines/invoices.yaml
+      limit:
+        description: Max documents (blank = config default)
+        type: string
+        default: ""
+      dry_run:
+        description: No writes, no source marking
+        type: boolean
+        default: false
+
+concurrency:
+  # Two overlapping runs would both fetch the same unlabelled mail.
+  group: docpipe-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+
+      - name: Install
+        run: uv pip install --system -e ".[markitdown,llm,google]"
+
+      - name: Validate config
+        env:
+          INVOICE_SHEET_ID: ${{ secrets.INVOICE_SHEET_ID }}
+        run: docpipe validate "${{ inputs.pipeline || 'pipelines/invoices.yaml' }}"
+
+      - name: Run
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          INVOICE_SHEET_ID: ${{ secrets.INVOICE_SHEET_ID }}
+        run: |
+          args=()
+          [ -n "${{ inputs.limit }}" ] && args+=(--limit "${{ inputs.limit }}")
+          [ "${{ inputs.dry_run }}" = "true" ] && args+=(--dry-run)
+          docpipe run "${{ inputs.pipeline || 'pipelines/invoices.yaml' }}" "${args[@]}"
+
+  test:
+    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv pip install --system -e ".[markitdown,dev]"
+      - run: pytest -q
