@@ -32,12 +32,17 @@ def interpolate(value: Any) -> Any:
         def sub(m: re.Match[str]) -> str:
             name, default = m.group(1), m.group(2)
             env = os.environ.get(name)
-            if env is not None:
+            # An empty value counts as unset. GitHub Actions passes a secret
+            # that was never configured as an empty string, and silently
+            # interpolating that produces a confusing downstream API error
+            # instead of naming the missing secret.
+            if env:
                 return env
             if default is not None:
                 return default
             raise MissingEnvVar(
-                f"${{{name}}} referenced in config but not set in environment"
+                f"${{{name}}} referenced in config but not set (or empty) in "
+                f"the environment"
             )
 
         return _ENV_RE.sub(sub, value)

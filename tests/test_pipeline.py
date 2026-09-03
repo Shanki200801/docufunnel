@@ -177,3 +177,25 @@ def test_csv_sink_widens_header_without_reordering(tmp_path: Path, inbox: Path) 
     assert list(rows[0]) == ["b", "a", "c"]
     assert rows[1]["c"] == "4"
     assert rows[0]["c"] == ""
+
+
+def test_empty_env_var_counts_as_missing(tmp_path: Path, inbox: Path, monkeypatch) -> None:
+    """GitHub Actions passes an unconfigured secret as an empty string, and
+    interpolating that would produce a confusing downstream API error rather
+    than naming the missing secret.
+    """
+    data = _cfg(tmp_path, inbox)
+    data["sink"] = {"type": "jsonl", "path": "${OUT_PATH}"}
+    path = _write(tmp_path, data)
+
+    monkeypatch.setenv("OUT_PATH", "")
+    with pytest.raises(config.MissingEnvVar, match="OUT_PATH"):
+        config.load(path)
+
+
+def test_default_still_applies_when_var_is_empty(tmp_path: Path, inbox: Path, monkeypatch) -> None:
+    data = _cfg(tmp_path, inbox)
+    data["sink"] = {"type": "jsonl", "path": "${OUT_PATH:-" + str(tmp_path / "fallback.jsonl") + "}"}
+    monkeypatch.setenv("OUT_PATH", "")
+    Pipeline(config.load(_write(tmp_path, data))).run()
+    assert (tmp_path / "fallback.jsonl").exists()

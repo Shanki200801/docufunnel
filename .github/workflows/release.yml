@@ -1,0 +1,43 @@
+name: release
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+# No blanket token: each job takes only what it needs.
+permissions: {}
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv pip install --system build twine
+      - run: python -m build -o dist
+      - run: twine check dist/*
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    # Configure this environment on PyPI as a Trusted Publisher for the
+    # docufunnel project (owner shashank-nimbly, repo docufunnel, workflow
+    # release.yml, environment pypi). No API token is ever stored.
+    environment:
+      name: pypi
+      url: https://pypi.org/p/docufunnel
+    permissions:
+      id-token: write  # mints the short-lived OIDC token PyPI verifies
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+      - uses: pypa/gh-action-pypi-publish@release/v1

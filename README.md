@@ -11,6 +11,45 @@ SOURCE ──▶ STORE ──▶ NORMALIZE ──▶ EXTRACT ──▶ SINK
 
 Every slot is an adapter picked by a `type:` string in YAML. Swapping Gmail for a watched folder, or Sheets for a CSV, is a config edit — not a code change. Runs free on GitHub Actions cron.
 
+## Quickstart
+
+### As a scheduled job — no install
+
+Click **Use this template** on GitHub. You get a repo with the cron already
+wired. Then:
+
+1. **Settings → Secrets and variables → Actions → Secrets**, add three:
+   - `IMAP_USER` — your Gmail address
+   - `IMAP_PASSWORD` — an [app password](https://myaccount.google.com/apppasswords) (needs 2-Step Verification on)
+   - `GEMINI_API_KEY` — free from [AI Studio](https://aistudio.google.com/apikey)
+2. Create a Google Sheet. Add `INVOICE_SHEET_ID` (the id from its URL) as a
+   fourth secret.
+3. For the Sheet, either add `GOOGLE_SERVICE_ACCOUNT_JSON` and share the sheet
+   with the account's `client_email` as Editor, or swap the sink to
+   `type: csv` and skip Google entirely.
+4. Edit `pipelines/imap-invoices.yaml` — the `gmail_search` line and the
+   `schema:` block are the two things worth changing.
+5. **Actions → run → Run workflow**, tick **dry_run**. Nothing is written and
+   no mail is marked, so it is safe against a live mailbox. Read the log,
+   then untick it.
+
+The schedule takes over from there.
+
+### As a library or CLI
+
+```bash
+pip install "docufunnel[recommended]"      # or: uv pip install ...
+docufunnel list                            # what adapters exist
+docufunnel run my-pipeline.yaml --dry-run
+```
+
+```python
+from docufunnel import run_file
+result = run_file("pipelines/imap-invoices.yaml", limit=5, dry_run=True)
+print(result.summary())
+```
+
+
 ## Why the slots are split this way
 
 The thing most tools get wrong is collapsing *normalize* and *extract* into one step. They are different problems:
@@ -46,8 +85,10 @@ Docling is slower and downloads models on first use, which is why it is the fall
 ## Install
 
 ```bash
-uv venv && uv pip install -e ".[markitdown,llm,google,dev]"
+uv venv && uv pip install -e ".[recommended,dev]"
 ```
+
+`recommended` is `markitdown` + `llm` + `google`. For contributing, add `dev`.
 
 Extras are independent, and adapters import their dependencies lazily. A folder→CSV pipeline runs with none of the optional extras installed; you only hit a missing dependency if you configure an adapter that needs it.
 

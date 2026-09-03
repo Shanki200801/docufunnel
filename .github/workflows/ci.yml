@@ -1,0 +1,38 @@
+name: ci
+
+on:
+  push:
+    branches: [master, main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          python-version: ${{ matrix.python }}
+          enable-cache: true
+      # docling is deliberately excluded: it pulls large ML models and the
+      # suite covers the fallback mechanism with a stub instead.
+      - run: uv pip install --system -e ".[markitdown,llm,google,dev]"
+      - run: ruff check src tests scripts
+      - run: pytest -q
+
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+      - run: uv pip install --system build twine
+      - run: python -m build -o dist
+      # Catches broken long_description or metadata before a tag is cut.
+      - run: twine check dist/*

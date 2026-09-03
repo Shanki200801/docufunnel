@@ -1,16 +1,18 @@
-name: docufunnel
+# The scheduled pipeline run. This is the file that makes the template repo
+# useful: fork or "Use this template", add secrets, edit a YAML, done.
+name: run
 
 on:
   schedule:
-    # Every 6 hours. GitHub queues cron jobs under load, so treat the time as
+    # Every 6 hours. GitHub queues cron under load, so treat the time as
     # approximate — pipelines are idempotent, which is what makes that fine.
     - cron: "17 */6 * * *"
   workflow_dispatch:
     inputs:
       pipeline:
-        description: Pipeline config to run
+        description: Pipeline config (blank = the PIPELINE repo variable)
         type: string
-        default: pipelines/invoices.yaml
+        default: ""
       limit:
         description: Max documents (blank = config default)
         type: string
@@ -21,14 +23,42 @@ on:
         default: false
 
 concurrency:
-  # Two overlapping runs would both fetch the same unlabelled mail.
+  # Two overlapping runs would both pick up the same unprocessed mail.
   group: docufunnel-${{ github.ref }}
   cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   run:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    permissions:
+      # write, not read: the last step commits local run state back so a
+      # state_file-based source does not restart from scratch every run.
+      contents: write
+    env:
+      # Set PIPELINE under Settings -> Secrets and variables -> Actions ->
+      # Variables to change what the schedule runs.
+      PIPELINE: ${{ inputs.pipeline || vars.PIPELINE || 'pipelines/imap-invoices.yaml' }}
+
+      # Route A — app password + service account. No OAuth app needed.
+      IMAP_USER: ${{ secrets.IMAP_USER }}
+      IMAP_PASSWORD: ${{ secrets.IMAP_PASSWORD }}
+      GOOGLE_SERVICE_ACCOUNT_JSON: ${{ secrets.GOOGLE_SERVICE_ACCOUNT_JSON }}
+
+      # Route B — only if a pipeline uses the Gmail API or the Drive store.
+      GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+      GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+      GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+
+      # Extraction + destination.
+      GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+      INVOICE_SHEET_ID: ${{ secrets.INVOICE_SHEET_ID }}
+      # Add your own secrets here when a pipeline references a new ${VAR}.
+      # An unconfigured secret arrives as an empty string, which docufunnel
+      # treats as missing and names in the error.
     steps:
       - uses: actions/checkout@v4
 
@@ -36,32 +66,32 @@ jobs:
         with:
           enable-cache: true
 
+      # docling is left out on purpose: it downloads large models on first use
+      # and would dominate the run. Add it here if a pipeline needs the OCR
+      # fallback, and raise timeout-minutes accordingly.
       - name: Install
         run: uv pip install --system -e ".[markitdown,llm,google]"
 
       - name: Validate config
-        env:
-          INVOICE_SHEET_ID: ${{ secrets.INVOICE_SHEET_ID }}
-        run: docufunnel validate "${{ inputs.pipeline || 'pipelines/invoices.yaml' }}"
+        run: docufunnel validate "$PIPELINE"
 
       - name: Run
-        env:
-          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
-          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
-          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          INVOICE_SHEET_ID: ${{ secrets.INVOICE_SHEET_ID }}
         run: |
           args=()
           [ -n "${{ inputs.limit }}" ] && args+=(--limit "${{ inputs.limit }}")
           [ "${{ inputs.dry_run }}" = "true" ] && args+=(--dry-run)
-          docufunnel run "${{ inputs.pipeline || 'pipelines/invoices.yaml' }}" "${args[@]}"
+          docufunnel run "$PIPELINE" "${args[@]}"
 
-  test:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_dispatch'
-    steps:
-      - uses: actions/checkout@v4
-      - uses: astral-sh/setup-uv@v5
-      - run: uv pip install --system -e ".[markitdown,dev]"
-      - run: pytest -q
+      # A pipeline whose source keeps local state (the `local` source, or an
+      # imap source with state_file) needs that state persisted, or every run
+      # starts from scratch.
+      - name: Persist run state
+        if: hashFiles('.state/**') != ''
+        run: |
+          if [ -n "$(git status --porcelain .state)" ]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add .state
+            git commit -m "chore: update docufunnel run state [skip ci]"
+            git push
+          fi
