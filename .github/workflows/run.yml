@@ -64,23 +64,28 @@ jobs:
 
       - uses: astral-sh/setup-uv@v5
         with:
+          python-version: "3.13"
           enable-cache: true
 
+      # A venv, not --system: the runner's Debian interpreter is marked
+      # externally-managed and uv refuses to install into it.
       # docling is left out on purpose: it downloads large models on first use
       # and would dominate the run. Add it here if a pipeline needs the OCR
       # fallback, and raise timeout-minutes accordingly.
       - name: Install
-        run: uv pip install --system -e ".[markitdown,llm,google]"
+        run: |
+          uv venv
+          uv pip install -e ".[markitdown,llm,google]"
 
       - name: Validate config
-        run: docufunnel validate "$PIPELINE"
+        run: uv run docufunnel validate "$PIPELINE"
 
       - name: Run
         run: |
           args=()
           [ -n "${{ inputs.limit }}" ] && args+=(--limit "${{ inputs.limit }}")
           [ "${{ inputs.dry_run }}" = "true" ] && args+=(--dry-run)
-          docufunnel run "$PIPELINE" "${args[@]}"
+          uv run docufunnel run "$PIPELINE" "${args[@]}"
 
       # A pipeline whose source keeps local state (the `local` source, or an
       # imap source with state_file) needs that state persisted, or every run

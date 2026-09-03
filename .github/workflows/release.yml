@@ -16,9 +16,14 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: astral-sh/setup-uv@v5
-      - run: uv pip install --system build twine
-      - run: python -m build -o dist
-      - run: twine check dist/*
+        with:
+          python-version: "3.13"
+      # A venv, not --system: the runner's Debian interpreter is marked
+      # externally-managed and uv refuses to install into it.
+      - run: uv venv
+      - run: uv pip install build twine
+      - run: uv run python -m build -o dist
+      - run: uv run twine check dist/*
       - uses: actions/upload-artifact@v4
         with:
           name: dist
