@@ -11,6 +11,7 @@ from __future__ import annotations
 import io
 
 from ..core import Document, register
+from ..deps import missing
 
 
 @register("normalize", "docling")
@@ -23,12 +24,15 @@ class DoclingNormalizer:
     def _converter(self):
         if self._conv is not None:
             return self._conv
-        from docling.datamodel.base_models import InputFormat
-        from docling.datamodel.pipeline_options import (
-            PdfPipelineOptions,
-            TableFormerMode,
-        )
-        from docling.document_converter import DocumentConverter, PdfFormatOption
+        try:
+            from docling.datamodel.base_models import InputFormat
+            from docling.datamodel.pipeline_options import (
+                PdfPipelineOptions,
+                TableFormerMode,
+            )
+            from docling.document_converter import DocumentConverter, PdfFormatOption
+        except ImportError as exc:
+            raise missing("docling", "docling", "the OCR / table fallback") from exc
 
         opts = PdfPipelineOptions()
         opts.do_ocr = self.ocr
@@ -44,8 +48,12 @@ class DoclingNormalizer:
         return self._conv
 
     def to_text(self, doc: Document) -> str | None:
+        # Build the converter first: it raises the error that names the extra,
+        # which a bare `import docling...` here would pre-empt with an
+        # unhelpful ModuleNotFoundError.
+        converter = self._converter()
         from docling.datamodel.base_models import DocumentStream
 
         source = DocumentStream(name=doc.filename, stream=io.BytesIO(doc.data))
-        result = self._converter().convert(source)
+        result = converter.convert(source)
         return (result.document.export_to_markdown() or "").strip() or None

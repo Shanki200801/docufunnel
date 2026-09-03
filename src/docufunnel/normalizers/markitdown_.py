@@ -15,6 +15,7 @@ import io
 from pathlib import Path
 
 from ..core import Document, register
+from ..deps import missing
 
 
 @register("normalize", "markitdown")
@@ -29,7 +30,10 @@ class MarkItDownNormalizer:
     def _converter(self):
         if self._md is not None:
             return self._md
-        from markitdown import MarkItDown
+        try:
+            from markitdown import MarkItDown
+        except ImportError as exc:
+            raise missing("markitdown", "markitdown", "the default normalizer") from exc
 
         self._md = MarkItDown(enable_plugins=False)
         return self._md

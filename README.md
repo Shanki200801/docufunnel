@@ -118,7 +118,17 @@ uv venv && uv pip install -e ".[recommended,dev]"
 
 `recommended` is `markitdown` + `llm` + `google`. For contributing, add `dev`.
 
-Extras are independent, and adapters import their dependencies lazily. A folder→CSV pipeline runs with none of the optional extras installed; you only hit a missing dependency if you configure an adapter that needs it.
+Extras are independent and adapters import their dependencies lazily, so you
+install only what your pipeline actually uses.
+
+What that does *not* mean: getting text out of a PDF needs the `markitdown`
+extra (or `llm`, which sends the raw file to the model), so those are not
+optional in practice for most pipelines. A bare install covers archiving
+attachments — a source plus a store, no extract stage — and pipelines whose
+input is already text.
+
+Run `docufunnel doctor <config>` and it names any extra your config needs
+before you run it. If a run happens anyway, the error names the extra too.
 
 | Extra | Enables |
 |---|---|

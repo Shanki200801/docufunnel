@@ -33,6 +33,8 @@ from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
+from .deps import missing
+
 TOKEN_URI = "https://oauth2.googleapis.com/token"
 
 GMAIL_SCOPE = "https://www.googleapis.com/auth/gmail.modify"
@@ -121,7 +123,12 @@ def service(api: str, version: str) -> Any:
     cache_discovery is off because it warns noisily and writes to a cache
     directory that does not exist in CI.
     """
-    from googleapiclient.discovery import build
+    try:
+        from googleapiclient.discovery import build
+    except ImportError as exc:
+        raise missing(
+            "google-api-python-client", "google", "the Gmail, Drive and Sheets adapters"
+        ) from exc
 
     if api == "gmail" and auth_mode() == "service_account":
         raise MissingCredentials(

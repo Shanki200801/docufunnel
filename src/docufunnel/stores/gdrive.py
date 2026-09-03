@@ -10,6 +10,7 @@ import io
 from typing import Any
 
 from ..core import Document, register
+from ..deps import missing
 from ..google_auth import service
 from ..templating import render
 
@@ -80,7 +81,10 @@ class GDriveStore:
         return found[0]["id"] if found else None
 
     def put(self, doc: Document) -> str:
-        from googleapiclient.http import MediaIoBaseUpload
+        try:
+            from googleapiclient.http import MediaIoBaseUpload
+        except ImportError as exc:
+            raise missing("google-api-python-client", "google", "the Drive store") from exc
 
         folder = self._folder_for(doc)
         if self.skip_existing:

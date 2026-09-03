@@ -7,8 +7,10 @@ a folder, or Sheets for Postgres, is a config edit rather than a code change.
 
 Built-in adapters register themselves on import of the sub-packages below.
 Heavy third-party imports (markitdown, docling, googleapiclient, google-genai)
-are deliberately deferred into the methods that use them, so a pipeline that
-only needs a folder and a CSV runs with no optional dependency installed.
+are deliberately deferred into the methods that use them, so an install pulls
+in only what a given pipeline needs. That defers the failure to run time, so
+each deferred import raises an error naming the extra that provides it — see
+docufunnel.deps.
 """
 
 from __future__ import annotations
@@ -19,7 +21,7 @@ from .config import PipelineConfig, load
 from .core import Document, available, load_plugins, register, resolve
 from .pipeline import Pipeline, RunResult
 
-__version__ = "0.1.0"
+__version__ = "0.1.1"
 
 __all__ = [
     "Document",

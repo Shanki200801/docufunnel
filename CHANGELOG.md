@@ -1,5 +1,20 @@
 # Changelog
 
+## 0.1.1 — 2026-09-04
+
+### Fixed
+- A missing optional dependency now raises an error naming the extra that
+  provides it, instead of a bare `ModuleNotFoundError: No module named
+  'markitdown'`. `doctor` already reported this before a run; a run that
+  happens anyway now says the same thing.
+- The Docling normalizer had a second lazy import that ran before the guarded
+  one, so it still failed with the unhelpful message.
+
+### Changed
+- Corrected the README's claim that a folder-to-CSV pipeline runs with no
+  extras installed. Getting text out of a PDF needs `markitdown` (or `llm`);
+  a bare install covers archiving attachments and text input only.
+
 ## 0.1.0 — 2026-09-04
 
 First release. Two editions of the same five-stage pipeline

@@ -22,6 +22,7 @@ import time
 from typing import Any
 
 from ..core import Document, register
+from ..deps import missing
 
 log = logging.getLogger("docufunnel.extract")
 
@@ -132,7 +133,10 @@ class LLMExtractor:
     def _get_client(self):
         if self._client is not None:
             return self._client
-        from google import genai
+        try:
+            from google import genai
+        except ImportError as exc:
+            raise missing("google-genai", "llm", "the LLM extractor") from exc
 
         key = os.environ.get(self.api_key_env)
         if not key:
