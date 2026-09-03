@@ -30,10 +30,10 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/shashank-nimbly/docufunnel"
-Source = "https://github.com/shashank-nimbly/docufunnel"
-Issues = "https://github.com/shashank-nimbly/docufunnel/issues"
-Changelog = "https://github.com/shashank-nimbly/docufunnel/blob/master/CHANGELOG.md"
+Homepage = "https://github.com/Shanki200801/docufunnel"
+Source = "https://github.com/Shanki200801/docufunnel"
+Issues = "https://github.com/Shanki200801/docufunnel/issues"
+Changelog = "https://github.com/Shanki200801/docufunnel/blob/master/CHANGELOG.md"
 
 [project.optional-dependencies]
 # Everything a first run needs: default normalizer + LLM extractor + Sheets.

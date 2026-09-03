@@ -28,7 +28,7 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     # Configure this environment on PyPI as a Trusted Publisher for the
-    # docufunnel project (owner shashank-nimbly, repo docufunnel, workflow
+    # docufunnel project (owner Shanki200801, repo docufunnel, workflow
     # release.yml, environment pypi). No API token is ever stored.
     environment:
       name: pypi
