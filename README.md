@@ -1,5 +1,10 @@
 # docufunnel
 
+[![PyPI](https://img.shields.io/pypi/v/docufunnel)](https://pypi.org/project/docufunnel/)
+[![Python](https://img.shields.io/pypi/pyversions/docufunnel)](https://pypi.org/project/docufunnel/)
+[![CI](https://github.com/Shanki200801/docufunnel/actions/workflows/ci.yml/badge.svg)](https://github.com/Shanki200801/docufunnel/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 Get structured data out of documents that arrive as attachments, without writing a new script per use case.
 
 ```
