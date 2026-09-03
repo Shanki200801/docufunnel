@@ -74,18 +74,18 @@ jobs:
       # fallback, and raise timeout-minutes accordingly.
       - name: Install
         run: |
-          uv venv
+          uv venv --allow-existing
           uv pip install -e ".[markitdown,llm,google]"
 
       - name: Validate config
-        run: uv run docufunnel validate "$PIPELINE"
+        run: .venv/bin/docufunnel validate "$PIPELINE"
 
       - name: Run
         run: |
           args=()
           [ -n "${{ inputs.limit }}" ] && args+=(--limit "${{ inputs.limit }}")
           [ "${{ inputs.dry_run }}" = "true" ] && args+=(--dry-run)
-          uv run docufunnel run "$PIPELINE" "${args[@]}"
+          .venv/bin/docufunnel run "$PIPELINE" "${args[@]}"
 
       # A pipeline whose source keeps local state (the `local` source, or an
       # imap source with state_file) needs that state persisted, or every run

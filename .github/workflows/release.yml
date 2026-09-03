@@ -20,10 +20,10 @@ jobs:
           python-version: "3.13"
       # A venv, not --system: the runner's Debian interpreter is marked
       # externally-managed and uv refuses to install into it.
-      - run: uv venv
+      - run: uv venv --allow-existing
       - run: uv pip install build twine
-      - run: uv run python -m build -o dist
-      - run: uv run twine check dist/*
+      - run: .venv/bin/python -m build -o dist
+      - run: .venv/bin/twine check dist/*
       - uses: actions/upload-artifact@v4
         with:
           name: dist
