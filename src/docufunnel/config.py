@@ -18,7 +18,11 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 _ENV_RE = re.compile(r"\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}")
 
 
-class MissingEnvVar(RuntimeError):
+class ConfigError(RuntimeError):
+    """A config file that cannot be read or does not have the expected shape."""
+
+
+class MissingEnvVar(ConfigError):
     pass
 
 
@@ -110,8 +114,18 @@ NormalizeConfig.model_rebuild()
 
 
 def load(path: str | Path) -> PipelineConfig:
-    raw = yaml.safe_load(Path(path).read_text())
+    p = Path(path)
+    try:
+        raw = yaml.safe_load(p.read_text())
+    except FileNotFoundError:
+        raise ConfigError(f"no such config file: {p}") from None
+    except yaml.YAMLError as exc:
+        # The raw parser traceback is noise; the mark tells the user where.
+        mark = getattr(exc, "problem_mark", None)
+        where = f" at line {mark.line + 1}, column {mark.column + 1}" if mark else ""
+        problem = getattr(exc, "problem", None) or str(exc)
+        raise ConfigError(f"{p}: invalid YAML{where}: {problem}") from None
     if not isinstance(raw, dict):
-        raise TypeError(f"{path}: expected a YAML mapping at the top level")
-    raw.setdefault("name", Path(path).stem)
+        raise ConfigError(f"{p}: expected a YAML mapping at the top level")
+    raw.setdefault("name", p.stem)
     return PipelineConfig.model_validate(interpolate(raw))

@@ -1,0 +1,559 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "docufunnel pipeline",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "source"
+  ],
+  "$defs": {
+    "normalizeStage": {
+      "type": "object",
+      "oneOf": [
+        {
+          "title": "normalize: docling",
+          "description": "Docling normalizer \u2014 the heavy, accurate alternative to MarkItDown.",
+          "properties": {
+            "type": {
+              "const": "docling"
+            },
+            "ocr": {
+              "anyOf": [
+                {
+                  "type": "boolean",
+                  "default": true
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\$\\{.+\\}$"
+                }
+              ]
+            },
+            "table_mode": {
+              "type": "string",
+              "default": "accurate"
+            },
+            "fallback": {
+              "$ref": "#/$defs/normalizeStage"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "title": "normalize: markitdown",
+          "description": "MarkItDown normalizer \u2014 anything to Markdown.",
+          "properties": {
+            "type": {
+              "const": "markitdown"
+            },
+            "describe_images": {
+              "anyOf": [
+                {
+                  "type": "boolean",
+                  "default": false
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\$\\{.+\\}$"
+                }
+              ]
+            },
+            "model": {
+              "default": null
+            },
+            "fallback": {
+              "$ref": "#/$defs/normalizeStage"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "title": "normalize: passthrough",
+          "description": "No-op normalizer: leaves doc.text as None so the extractor receives the raw bytes.",
+          "properties": {
+            "type": {
+              "const": "passthrough"
+            },
+            "fallback": {
+              "$ref": "#/$defs/normalizeStage"
+            }
+          },
+          "required": [
+            "type"
+          ]
+        }
+      ],
+      "properties": {
+        "min_text_len": {
+          "type": "integer",
+          "default": 200,
+          "description": "Fallback only: characters the primary normalizer must produce to be trusted. A scanned PDF converts to near-empty text without raising, so length is the signal."
+        }
+      }
+    }
+  },
+  "properties": {
+    "name": {
+      "type": "string",
+      "description": "Pipeline name; defaults to the filename."
+    },
+    "limit": {
+      "anyOf": [
+        {
+          "type": "integer",
+          "minimum": 1
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "description": "Stop after N documents."
+    },
+    "on_error": {
+      "enum": [
+        "skip",
+        "abort"
+      ],
+      "default": "skip",
+      "description": "skip keeps going past a failed document; abort stops the run."
+    },
+    "dry_run": {
+      "type": "boolean",
+      "default": false,
+      "description": "No store writes, no sink writes, no source marking."
+    },
+    "source": {
+      "type": "object",
+      "oneOf": [
+        {
+          "title": "source: gmail",
+          "description": "Gmail source: search, pull attachments, label the thread when done.",
+          "properties": {
+            "type": {
+              "const": "gmail"
+            },
+            "query": {
+              "type": "string"
+            },
+            "processed_label": {
+              "type": "string",
+              "default": "docufunnel/processed"
+            },
+            "filename_glob": {
+              "type": "string",
+              "default": "*"
+            },
+            "max_threads": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "default": 100
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\$\\{.+\\}$"
+                }
+              ]
+            },
+            "min_bytes": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "default": 1024
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\$\\{.+\\}$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "query"
+          ]
+        },
+        {
+          "title": "source: imap",
+          "description": "IMAP source \u2014 the adapter that makes this tool distributable.",
+          "properties": {
+            "type": {
+              "const": "imap"
+            },
+            "user": {
+              "type": "string"
+            },
+            "password": {
+              "type": "string"
+            },
+            "host": {
+              "type": "string",
+              "default": "imap.gmail.com"
+            },
+            "port": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "default": 993
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\$\\{.+\\}$"
+                }
+              ]
+            },
+            "mailbox": {
+              "type": "string",
+              "default": "INBOX"
+            },
+            "search": {
+              "type": "string",
+              "default": "ALL"
+            },
+            "gmail_search": {
+              "default": null
+            },
+            "filename_glob": {
+              "type": "string",
+              "default": "*"
+            },
+            "max_messages": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "default": 100
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\$\\{.+\\}$"
+                }
+              ]
+            },
+            "min_bytes": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "default": 1024
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\$\\{.+\\}$"
+                }
+              ]
+            },
+            "processed": {
+              "type": "string",
+              "default": "keyword"
+            },
+            "processed_keyword": {
+              "type": "string",
+              "default": "docufunnel-done"
+            },
+            "move_to": {
+              "type": "string",
+              "default": "Processed"
+            },
+            "state_file": {
+              "default": null
+            }
+          },
+          "required": [
+            "type",
+            "user",
+            "password"
+          ]
+        },
+        {
+          "title": "source: local",
+          "description": "Filesystem source. The one adapter that needs no credentials, so it is what you develop and test pipelines against before pointing them at a mailbox.",
+          "properties": {
+            "type": {
+              "const": "local"
+            },
+            "path": {
+              "type": "string"
+            },
+            "glob": {
+              "type": "string",
+              "default": "**/*.pdf"
+            },
+            "state_file": {
+              "default": null
+            }
+          },
+          "required": [
+            "type",
+            "path"
+          ]
+        }
+      ]
+    },
+    "store": {
+      "type": "object",
+      "oneOf": [
+        {
+          "title": "store: gdrive",
+          "description": "Google Drive store: resolve/create a nested folder path, then upload.",
+          "properties": {
+            "type": {
+              "const": "gdrive"
+            },
+            "path": {
+              "type": "string",
+              "default": "docufunnel/{{yyyymm}}"
+            },
+            "parent_id": {
+              "type": "string",
+              "default": "root"
+            },
+            "skip_existing": {
+              "anyOf": [
+                {
+                  "type": "boolean",
+                  "default": true
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\$\\{.+\\}$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "title": "store: local",
+          "description": "Filesystem store.",
+          "properties": {
+            "type": {
+              "const": "local"
+            },
+            "path": {
+              "type": "string",
+              "default": "out/{{yyyymm}}"
+            },
+            "overwrite": {
+              "anyOf": [
+                {
+                  "type": "boolean",
+                  "default": false
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\$\\{.+\\}$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "type"
+          ]
+        }
+      ]
+    },
+    "normalize": {
+      "$ref": "#/$defs/normalizeStage"
+    },
+    "extract": {
+      "type": "object",
+      "oneOf": [
+        {
+          "title": "extract: llm",
+          "description": "LLM extractor \u2014 config-declared schema, structured JSON out.",
+          "properties": {
+            "type": {
+              "const": "llm"
+            },
+            "schema": {},
+            "model": {
+              "type": "string",
+              "default": "gemini-2.5-flash"
+            },
+            "prompt": {
+              "type": "string",
+              "default": "Extract the requested fields from this document. Use null for any field that is genuinely absent \u2014 never invent a value. Return numbers as numbers, not strings, and strip currency symbols and thousands separators."
+            },
+            "api_key_env": {
+              "type": "string",
+              "default": "GEMINI_API_KEY"
+            },
+            "records_path": {
+              "default": null
+            },
+            "carry_fields": {
+              "default": null
+            },
+            "max_text_chars": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "default": 60000
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\$\\{.+\\}$"
+                }
+              ]
+            },
+            "retries": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "default": 3
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\$\\{.+\\}$"
+                }
+              ]
+            },
+            "temperature": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "default": 0.0
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\$\\{.+\\}$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "schema"
+          ]
+        },
+        {
+          "title": "extract: regex",
+          "description": "Deterministic extractors \u2014 no API key, no cost, no non-determinism.",
+          "properties": {
+            "type": {
+              "const": "regex"
+            },
+            "fields": {
+              "type": "object"
+            },
+            "flags": {
+              "type": "string",
+              "default": "im"
+            }
+          },
+          "required": [
+            "type",
+            "fields"
+          ]
+        },
+        {
+          "title": "extract: text",
+          "description": "Emits the normalised text itself as one record.",
+          "properties": {
+            "type": {
+              "const": "text"
+            },
+            "max_chars": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "default": 40000
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\$\\{.+\\}$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "type"
+          ]
+        }
+      ]
+    },
+    "sink": {
+      "type": "object",
+      "oneOf": [
+        {
+          "title": "sink: csv",
+          "description": "CSV / JSONL sinks. No credentials, so these are what you point a new pipeline at while you are still shaping the schema.",
+          "properties": {
+            "type": {
+              "const": "csv"
+            },
+            "path": {
+              "type": "string",
+              "default": "out/records.csv"
+            },
+            "dedupe_key": {
+              "default": null
+            }
+          },
+          "required": [
+            "type"
+          ]
+        },
+        {
+          "title": "sink: gsheet",
+          "description": "Google Sheets sink.",
+          "properties": {
+            "type": {
+              "const": "gsheet"
+            },
+            "spreadsheet_id": {
+              "type": "string"
+            },
+            "tab": {
+              "type": "string",
+              "default": "Sheet1"
+            },
+            "dedupe_key": {
+              "default": null
+            },
+            "create_tab": {
+              "anyOf": [
+                {
+                  "type": "boolean",
+                  "default": true
+                },
+                {
+                  "type": "string",
+                  "pattern": "^\\$\\{.+\\}$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "type",
+            "spreadsheet_id"
+          ]
+        },
+        {
+          "title": "sink: jsonl",
+          "description": "Lossless counterpart to the CSV sink \u2014 keeps nested structures intact.",
+          "properties": {
+            "type": {
+              "const": "jsonl"
+            },
+            "path": {
+              "type": "string",
+              "default": "out/records.jsonl"
+            },
+            "dedupe_key": {
+              "default": null
+            }
+          },
+          "required": [
+            "type"
+          ]
+        }
+      ]
+    }
+  }
+}

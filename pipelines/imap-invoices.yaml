@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../.docufunnel-schema.json
 # The recommended starting point: no Google Cloud project, no OAuth consent
 # screen, no verification, no expiring token.
 #

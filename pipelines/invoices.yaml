@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../.docufunnel-schema.json
 # Gmail -> Drive -> markdown -> Gemini -> Sheets.
 # The direct replacement for the Apps Script original, plus extraction.
 name: invoices

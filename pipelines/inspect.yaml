@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../.docufunnel-schema.json
 # No credentials, no model, no cost.
 #
 # Run this first against a folder of real documents to see what the normalizer

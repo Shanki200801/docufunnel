@@ -53,7 +53,16 @@ markitdown = ["markitdown[pdf,docx,xlsx,pptx]>=0.1.0"]
 docling = ["docling>=2.15"]
 # LLM extractor.
 llm = ["google-genai>=1.0"]
-dev = ["pytest>=8", "python-dotenv>=1.0", "ruff>=0.6", "build>=1.2", "twine>=5.1"]
+dev = [
+    "pytest>=8",
+    "python-dotenv>=1.0",
+    "ruff>=0.6",
+    "build>=1.2",
+    "twine>=5.1",
+    # Used to assert the generated JSON Schema actually accepts every shipped
+    # pipeline, which is the only way that schema stays honest.
+    "jsonschema>=4.23",
+]
 
 [project.scripts]
 docufunnel = "docufunnel.cli:main"

@@ -102,13 +102,63 @@ Extras are independent, and adapters import their dependencies lazily. A folder�
 ## Run
 
 ```bash
-docufunnel list                          # registered adapters
+docufunnel init                          # scaffold a pipeline, interactively
+docufunnel list --describe               # every adapter and every option it takes
+docufunnel doctor pipelines/x.yaml       # what is missing before you run
+docufunnel schema                        # JSON Schema for editor autocomplete
 docufunnel validate pipelines/x.yaml     # config + env check, zero side effects
 docufunnel run pipelines/x.yaml --limit 3 --dry-run
 docufunnel run pipelines/x.yaml
 ```
 
 `--dry-run` skips every side effect: no store writes, no sink writes, and the source is not marked processed. Safe to point at a live mailbox.
+
+### The config is the UI, so it documents itself
+
+An adapter's constructor keyword arguments *are* its config schema. `list
+--describe`, `doctor` and the JSON Schema are all derived from those
+signatures, so there is no second copy to drift:
+
+```
+$ docufunnel list --describe --slot source
+  imap
+    IMAP source — the adapter that makes this tool distributable.
+      user: str  (required)
+      password: str  (required)
+      host: str = 'imap.gmail.com'
+      port: int = 993
+      gmail_search: str | None = None
+      ...
+```
+
+`docufunnel schema` writes `.docufunnel-schema.json`. Every shipped pipeline
+starts with
+
+```yaml
+# yaml-language-server: $schema=../.docufunnel-schema.json
+```
+
+which gives completion, hover docs and inline validation in any editor with
+the YAML language server — including only the options that the `type:` you
+picked actually accepts. A test asserts the schema accepts every pipeline in
+`pipelines/`, so it cannot quietly rot.
+
+`docufunnel doctor` answers "why did that not work" before you run:
+
+```
+$ docufunnel doctor pipelines/imap-invoices.yaml
+optional dependencies
+  markitdown               installed
+  docling                  missing   -> pip install "docufunnel[docling]"
+google credentials
+  GOOGLE_SERVICE_ACCOUNT_JSON set (no OAuth app needed; Drive/Sheets only)
+variables referenced by imap-invoices.yaml
+  IMAP_PASSWORD                set
+  INVOICE_SHEET_ID             MISSING
+adapters used by imap-invoices
+  source     imap           ready
+  extract    llm            ready
+```
 
 ## Config
 
@@ -274,6 +324,7 @@ src/docufunnel/
   config.py        YAML load, ${ENV} interpolation, validation
   pipeline.py      orchestrator — knows slot order, nothing about adapters
   templating.py    {{var}} rendering for paths and tab names
+  introspect.py    signatures -> docs, JSON Schema, doctor checks
   google_auth.py   service-account or OAuth credentials for Drive/Sheets/Gmail
   sources/         imap, gmail, local
   stores/          gdrive, local

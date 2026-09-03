@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=../.docufunnel-schema.json
 # One document -> many rows, and raw PDF straight to the model.
 #
 # Line-item tables are exactly where a markdown conversion hurts: column
