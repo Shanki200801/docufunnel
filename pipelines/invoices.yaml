@@ -10,7 +10,7 @@ source:
   # Any Gmail search operator works. `-label:<processed_label>` is appended
   # automatically, so processed mail is excluded server-side.
   query: "has:attachment filename:pdf (invoice OR receipt OR bill)"
-  processed_label: docpipe/invoices
+  processed_label: docufunnel/invoices
   filename_glob: "*.pdf"
   max_threads: 100
   min_bytes: 2048          # drops signature images and tracking pixels

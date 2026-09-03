@@ -16,7 +16,7 @@ from typing import Any
 from .config import NormalizeConfig, PipelineConfig, StageConfig
 from .core import Document, load_plugins, resolve
 
-log = logging.getLogger("docpipe")
+log = logging.getLogger("docufunnel")
 
 
 @dataclass

@@ -28,7 +28,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from docpipe.google_auth import SCOPES
+from docufunnel.google_auth import SCOPES
 
 
 def main() -> int:

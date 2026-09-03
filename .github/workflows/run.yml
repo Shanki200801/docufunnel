@@ -1,4 +1,4 @@
-name: docpipe
+name: docufunnel
 
 on:
   schedule:
@@ -22,7 +22,7 @@ on:
 
 concurrency:
   # Two overlapping runs would both fetch the same unlabelled mail.
-  group: docpipe-${{ github.ref }}
+  group: docufunnel-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
@@ -42,7 +42,7 @@ jobs:
       - name: Validate config
         env:
           INVOICE_SHEET_ID: ${{ secrets.INVOICE_SHEET_ID }}
-        run: docpipe validate "${{ inputs.pipeline || 'pipelines/invoices.yaml' }}"
+        run: docufunnel validate "${{ inputs.pipeline || 'pipelines/invoices.yaml' }}"
 
       - name: Run
         env:
@@ -55,7 +55,7 @@ jobs:
           args=()
           [ -n "${{ inputs.limit }}" ] && args+=(--limit "${{ inputs.limit }}")
           [ "${{ inputs.dry_run }}" = "true" ] && args+=(--dry-run)
-          docpipe run "${{ inputs.pipeline || 'pipelines/invoices.yaml' }}" "${args[@]}"
+          docufunnel run "${{ inputs.pipeline || 'pipelines/invoices.yaml' }}" "${args[@]}"
 
   test:
     runs-on: ubuntu-latest

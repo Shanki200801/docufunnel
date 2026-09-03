@@ -1,0 +1,58 @@
+# The recommended starting point: no Google Cloud project, no OAuth consent
+# screen, no verification, no expiring token.
+#
+#   Gmail app password  -> IMAP source
+#   Service account     -> Sheets sink  (share the sheet with the SA email)
+#
+# Setup is two secrets and one shared sheet. Compare pipelines/invoices.yaml,
+# which uses the Gmail API and costs the user a Cloud project.
+name: imap-invoices
+
+limit: 50
+on_error: skip
+
+source:
+  type: imap
+  host: imap.gmail.com
+  user: ${IMAP_USER}
+  # A Gmail *app password*, not the account password:
+  # https://myaccount.google.com/apppasswords
+  password: ${IMAP_PASSWORD}
+  mailbox: INBOX
+  # Gmail's own search syntax, via the IMAP X-GM-RAW extension. The processed
+  # keyword is excluded automatically, server-side.
+  gmail_search: "has:attachment filename:pdf (invoice OR receipt OR bill)"
+  filename_glob: "*.pdf"
+  min_bytes: 2048
+  # Marks processed mail with an IMAP keyword, which Gmail shows as a label.
+  processed: keyword
+  processed_keyword: docufunnel-done
+
+# No store slot: without OAuth, a service account has no Drive quota of its
+# own, so uploads can fail on a personal account. Records still carry the
+# source filename and a content hash. Add a local or gdrive store if you want
+# the raw files archived.
+
+normalize:
+  type: markitdown
+  fallback:
+    type: docling
+    min_text_len: 200
+
+extract:
+  type: llm
+  model: gemini-2.5-flash
+  schema:
+    invoice_no: string
+    invoice_date: date
+    vendor_name: string
+    currency: currency
+    subtotal: number
+    tax: number
+    total: number
+
+sink:
+  type: gsheet
+  spreadsheet_id: ${INVOICE_SHEET_ID}
+  tab: "{{year}}"
+  dedupe_key: invoice_no

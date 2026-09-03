@@ -1,4 +1,4 @@
-"""docpipe — a config-driven document ETL pipeline.
+"""docufunnel — a config-driven document ETL pipeline.
 
     SOURCE -> STORE -> NORMALIZE -> EXTRACT -> SINK
 

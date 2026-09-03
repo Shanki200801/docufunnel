@@ -20,7 +20,7 @@ FOLDER_MIME = "application/vnd.google-apps.folder"
 class GDriveStore:
     def __init__(
         self,
-        path: str = "docpipe/{{yyyymm}}",
+        path: str = "docufunnel/{{yyyymm}}",
         parent_id: str = "root",
         skip_existing: bool = True,
     ) -> None:

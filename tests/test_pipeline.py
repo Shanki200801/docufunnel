@@ -15,8 +15,8 @@ from typing import ClassVar
 import pytest
 import yaml
 
-from docpipe import Pipeline, config
-from docpipe.core import Document, register, resolve
+from docufunnel import Pipeline, config
+from docufunnel.core import Document, register, resolve
 
 
 def _cfg(tmp_path: Path, inbox: Path, **over) -> dict:
@@ -160,7 +160,7 @@ def test_unknown_adapter_lists_alternatives(tmp_path: Path, inbox: Path) -> None
 
 
 def test_csv_sink_widens_header_without_reordering(tmp_path: Path, inbox: Path) -> None:
-    from docpipe.sinks.csv_ import CsvSink
+    from docufunnel.sinks.csv_ import CsvSink
 
     out = tmp_path / "wide.csv"
     sink = CsvSink(path=str(out))

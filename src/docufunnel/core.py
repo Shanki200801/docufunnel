@@ -4,7 +4,7 @@ protocols each slot must satisfy, and the registry that resolves a config
 
 Adding an adapter means writing one class and decorating it with @register.
 Third-party packages can add adapters without touching this repo by exposing a
-`docpipe.adapters` entry point (see load_plugins).
+`docufunnel.adapters` entry point (see load_plugins).
 """
 
 from __future__ import annotations
@@ -137,16 +137,16 @@ def available(slot: Slot | None = None) -> dict[Slot, list[str]]:
 
 
 def load_plugins() -> list[str]:
-    """Import external adapter packages advertising a `docpipe.adapters` entry
+    """Import external adapter packages advertising a `docufunnel.adapters` entry
     point. Each entry point is a module whose import side effect is calling
     @register. Failures are reported, not fatal — one broken plugin should not
     stop a pipeline that does not use it.
     """
     loaded: list[str] = []
-    for ep in entry_points(group="docpipe.adapters"):
+    for ep in entry_points(group="docufunnel.adapters"):
         try:
             ep.load()
             loaded.append(ep.name)
         except Exception as exc:  # noqa: BLE001 - plugin isolation is the point
-            print(f"[docpipe] plugin {ep.name!r} failed to load: {exc}")
+            print(f"[docufunnel] plugin {ep.name!r} failed to load: {exc}")
     return loaded

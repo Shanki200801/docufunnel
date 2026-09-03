@@ -1,4 +1,4 @@
-# docpipe
+# docufunnel
 
 Get structured data out of documents that arrive as attachments, without writing a new script per use case.
 
@@ -61,10 +61,10 @@ Extras are independent, and adapters import their dependencies lazily. A folder�
 ## Run
 
 ```bash
-docpipe list                          # registered adapters
-docpipe validate pipelines/x.yaml     # config + env check, zero side effects
-docpipe run pipelines/x.yaml --limit 3 --dry-run
-docpipe run pipelines/x.yaml
+docufunnel list                          # registered adapters
+docufunnel validate pipelines/x.yaml     # config + env check, zero side effects
+docufunnel run pipelines/x.yaml --limit 3 --dry-run
+docufunnel run pipelines/x.yaml
 ```
 
 `--dry-run` skips every side effect: no store writes, no sink writes, and the source is not marked processed. Safe to point at a live mailbox.
@@ -79,7 +79,7 @@ on_error: skip            # skip | abort
 source:
   type: gmail
   query: "has:attachment filename:pdf from:billing@"
-  processed_label: docpipe/invoices
+  processed_label: docufunnel/invoices
   filename_glob: "*.pdf"
 
 store:
@@ -142,27 +142,74 @@ Three independent layers, because each catches a different failure:
 
 Set `dedupe_key` to a field from your schema (`invoice_no`) for business-level dedupe, or `_uid` (the content hash, added to every record) for exact-file dedupe.
 
+## Auth: pick a route before anything else
+
+This decides whether you need a Google Cloud project at all.
+
+### Route A — app password + service account (recommended)
+
+Nothing to verify, nothing that expires, no consent screen.
+
+| Need | How | Time |
+|---|---|---|
+| Read mail | Gmail **app password** → `imap` source | 2 min |
+| Write rows | **Service account** → share the Sheet with its `client_email` | 3 min |
+
+The `imap` source uses only the standard library — no extra to install.
+
+### Route B — OAuth (only if you need the Gmail API)
+
+Buys server-side label writes and Gmail API search. Costs a Cloud project, an
+OAuth client, and a click through an unverified-app screen.
+
+**You cannot publish a shared OAuth app for this.** `gmail.modify` is a
+[restricted scope](https://developers.google.com/identity/protocols/oauth2/production-readiness/restricted-scope-verification):
+distributing one app that many people authorise requires Google verification
+**plus an annual CASA security assessment**, redone every 12 months. Leaving the
+app in *Testing* instead caps users, shows a warning screen, and limits the
+refresh-token lifetime — which breaks a cron job within a week. Google's
+personal-use exception covers you and a few people you know personally,
+clicking past the unverified screen with their own client.
+
+So every user brings their own credentials. That is the only shape this can
+legally take, and it is why Route A exists.
+
+Two limits that follow from how service accounts work:
+
+- **Gmail is unreachable with a service account** (that needs Workspace
+  domain-wide delegation). Use `imap`, or Route B.
+- **A service account has no Drive storage quota of its own**, so the `gdrive`
+  store can fail with `storageQuotaExceeded` on a personal account. Appending
+  rows to a user-owned Sheet consumes no storage and is unaffected. The store
+  slot is optional — drop it, or use a local store.
+
+Never commit a client secret or a service-account key. `.env` is gitignored;
+in CI use repository secrets.
+
 ## Free hosting
 
 GitHub Actions cron. See `.github/workflows/run.yml`. Public repo = unlimited minutes; private = 2000 min/month, which is far more than this needs.
 
 Secrets to set (Settings → Secrets and variables → Actions):
 
+Route A secrets:
+
 | Secret | From |
 |---|---|
-| `GOOGLE_CLIENT_ID` / `GOOGLE_CLIENT_SECRET` | Google Cloud console, OAuth desktop client |
-| `GOOGLE_REFRESH_TOKEN` | `python scripts/google_oauth.py` |
+| `IMAP_USER` / `IMAP_PASSWORD` | your address + https://myaccount.google.com/apppasswords |
+| `GOOGLE_SERVICE_ACCOUNT_JSON` | Cloud console → service account → JSON key (paste the whole blob) |
 | `GEMINI_API_KEY` | https://aistudio.google.com/apikey (free tier) |
 | `INVOICE_SHEET_ID` | the Sheets URL |
 
-A refresh token is used rather than a service account because a service account cannot read a personal Gmail mailbox without Workspace domain-wide delegation.
+Route B swaps the first two for `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` and
+`GOOGLE_REFRESH_TOKEN` (see `scripts/google_oauth.py`).
 
 ## Adding an adapter
 
 One class, one decorator:
 
 ```python
-from docpipe.core import Document, register
+from docufunnel.core import Document, register
 
 @register("sink", "postgres")
 class PostgresSink:
@@ -176,18 +223,18 @@ class PostgresSink:
 
 Constructor keyword arguments *are* the config schema — every key under the stage in YAML is passed straight through, so a typo surfaces as a `TypeError` naming the bad key.
 
-To ship adapters as a separate package, expose them under the `docpipe.adapters` entry point group; `load_plugins()` imports them at startup and a broken plugin is reported without failing the run.
+To ship adapters as a separate package, expose them under the `docufunnel.adapters` entry point group; `load_plugins()` imports them at startup and a broken plugin is reported without failing the run.
 
 ## Layout
 
 ```
-src/docpipe/
+src/docufunnel/
   core.py          Document, adapter protocols, registry, plugin loading
   config.py        YAML load, ${ENV} interpolation, validation
   pipeline.py      orchestrator — knows slot order, nothing about adapters
   templating.py    {{var}} rendering for paths and tab names
-  google_auth.py   shared OAuth credentials for Gmail/Drive/Sheets
-  sources/         gmail, local
+  google_auth.py   service-account or OAuth credentials for Drive/Sheets/Gmail
+  sources/         imap, gmail, local
   stores/          gdrive, local
   normalizers/     markitdown_, docling_, passthrough
   extractors/      llm (Gemini), regex, text

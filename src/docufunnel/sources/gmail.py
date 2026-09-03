@@ -25,7 +25,7 @@ class GmailSource:
     def __init__(
         self,
         query: str,
-        processed_label: str = "docpipe/processed",
+        processed_label: str = "docufunnel/processed",
         filename_glob: str = "*",
         max_threads: int = 100,
         min_bytes: int = 1024,

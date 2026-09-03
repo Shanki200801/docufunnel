@@ -23,7 +23,7 @@ from typing import Any
 
 from ..core import Document, register
 
-log = logging.getLogger("docpipe.extract")
+log = logging.getLogger("docufunnel.extract")
 
 # YAML shorthand -> JSON-schema type. `date` and `currency` are not real JSON
 # schema types; they map to string and carry a format hint in the description

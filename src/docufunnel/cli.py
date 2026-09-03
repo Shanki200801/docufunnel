@@ -1,8 +1,8 @@
 """Command line entry point.
 
-    docpipe list                       # what adapters are available
-    docpipe validate pipelines/x.yaml  # config + env check, no side effects
-    docpipe run pipelines/x.yaml --limit 3 --dry-run
+    docufunnel list                       # what adapters are available
+    docufunnel validate pipelines/x.yaml  # config + env check, no side effects
+    docufunnel run pipelines/x.yaml --limit 3 --dry-run
 """
 
 from __future__ import annotations
@@ -77,7 +77,7 @@ def _cmd_run(args: argparse.Namespace) -> int:
 
 
 def main(argv: list[str] | None = None) -> int:
-    parser = argparse.ArgumentParser(prog="docpipe", description=__doc__)
+    parser = argparse.ArgumentParser(prog="docufunnel", description=__doc__)
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("-v", "--verbose", action="store_true")
     sub = parser.add_subparsers(dest="command", required=True)

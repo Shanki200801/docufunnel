@@ -8,8 +8,8 @@ from __future__ import annotations
 
 import pytest
 
-from docpipe.core import Document
-from docpipe.extractors.llm import LLMExtractor, compile_schema
+from docufunnel.core import Document
+from docufunnel.extractors.llm import LLMExtractor, compile_schema
 
 
 def test_shorthand_scalars():
