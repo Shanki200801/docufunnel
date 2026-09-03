@@ -61,9 +61,15 @@ The schedule takes over from there.
 
 ```bash
 pip install "docufunnel[recommended]"      # or: uv pip install ...
-docufunnel list                            # what adapters exist
-docufunnel run my-pipeline.yaml --dry-run
+docufunnel setup                           # asks a few questions, writes a pipeline
+docufunnel run pipelines/my-documents.yaml --limit 3 --dry-run
 ```
+
+`setup` verifies every credential as you type it â€” a bad Gemini key or a Gmail
+account password used where an app password is needed fails there, not as a
+silent cron failure hours later. It asks what to extract in plain English (the
+same idea as the Apps Script Fields tab), picks a sensible duplicate-check
+field, and writes `.env`, the pipeline, and the editor schema.
 
 ```python
 from docufunnel import run_file
@@ -124,7 +130,8 @@ Extras are independent, and adapters import their dependencies lazily. A folderâ
 ## Run
 
 ```bash
-docufunnel init                          # scaffold a pipeline, interactively
+docufunnel setup                         # guided: verifies keys, writes everything
+docufunnel init                          # bare scaffold, no questions about credentials
 docufunnel list --describe               # every adapter and every option it takes
 docufunnel doctor pipelines/x.yaml       # what is missing before you run
 docufunnel schema                        # JSON Schema for editor autocomplete

@@ -1,5 +1,6 @@
 """Command line entry point.
 
+    docufunnel setup                    # interactive: verifies keys, writes a pipeline
     docufunnel list [--describe]        # adapters, and every option each takes
     docufunnel doctor [config]          # what is installed, what is configured
     docufunnel schema [-o path]         # JSON Schema, for editor autocomplete
@@ -337,6 +338,16 @@ def _cmd_init(args: argparse.Namespace) -> int:
 # -- validate / run ---------------------------------------------------------
 
 
+def _cmd_setup(args: argparse.Namespace) -> int:
+    from .wizard import run_wizard
+
+    try:
+        return run_wizard(args.output)
+    except (KeyboardInterrupt, EOFError):
+        print("\ncancelled; nothing was written.")
+        return 130
+
+
 def _cmd_validate(args: argparse.Namespace) -> int:
     try:
         cfg = load(args.config)
@@ -387,6 +398,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--version", action="version", version=__version__)
     parser.add_argument("-v", "--verbose", action="store_true")
     sub = parser.add_subparsers(dest="command", required=True)
+
+    p_setup = sub.add_parser("setup", help="interactive setup: keys, fields, pipeline")
+    p_setup.add_argument("-o", "--output", help="pipeline path (default pipelines/<name>.yaml)")
+    p_setup.set_defaults(func=_cmd_setup)
 
     p_list = sub.add_parser("list", help="list adapters")
     p_list.add_argument("--describe", action="store_true", help="show every option each takes")
