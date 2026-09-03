@@ -11,6 +11,28 @@ SOURCE ──▶ STORE ──▶ NORMALIZE ──▶ EXTRACT ──▶ SINK
 
 Every slot is an adapter picked by a `type:` string in YAML. Swapping Gmail for a watched folder, or Sheets for a CSV, is a config edit — not a code change. Runs free on GitHub Actions cron.
 
+## Two editions
+
+Pick by who is going to run it.
+
+| | [Apps Script edition](apps-script/) | Python edition (this page) |
+|---|---|---|
+| For | anyone, including non-technical users | developers, and anything at volume |
+| Install | **none** — copy a Google Sheet | Python + pip/uv |
+| Gmail access | **nothing to set up** — runs as the user | app password or OAuth |
+| Secrets to paste | **1** (Gemini key) | 3–5 |
+| Config lives in | two spreadsheet tabs | YAML in git |
+| Scheduling | built-in triggers | GitHub Actions cron |
+| Formats | PDF and images | also DOCX, XLSX, PPTX, HTML, CSV, EPub |
+| Scanned pages | Gemini reads them directly | Docling OCR fallback |
+| Rows per document | one | many (`records_path`) |
+| Runtime cap | ~6 min per run | none |
+
+Apps Script needs one secret because it already runs **as the signed-in
+user** — no OAuth client, no app password, no service account to read that
+person's mail or write their sheet. Both editions use the same five stages, so
+moving up costs no relearning.
+
 ## Quickstart
 
 ### As a scheduled job — no install

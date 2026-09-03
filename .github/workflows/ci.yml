@@ -36,3 +36,17 @@ jobs:
       - run: python -m build -o dist
       # Catches broken long_description or metadata before a tag is cut.
       - run: twine check dist/*
+
+  apps-script:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      # dist/docufunnel.gs is what people paste, so a stale bundle ships the
+      # wrong code. Rebuild and fail if it differs from what is committed.
+      - run: python3 apps-script/build.py
+      - name: Bundle is up to date
+        run: |
+          if ! git diff --exit-code -- apps-script/dist; then
+            echo "::error::apps-script/dist is stale. Run: python3 apps-script/build.py"
+            exit 1
+          fi

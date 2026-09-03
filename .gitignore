@@ -8,3 +8,4 @@ out/
 samples/
 .state/
 dist/
+apps-script/.clasp.json
